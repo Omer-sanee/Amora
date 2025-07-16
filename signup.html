@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign Up | Amora</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <meta name="theme-color" content="#fe2c55" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fef2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    h2 {
+      color: #fe2c55;
+      margin-bottom: 20px;
+      font-size: 26px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    input:focus {
+      border-color: #fe2c55;
+      outline: none;
+    }
+    .input-wrapper {
+      position: relative;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 20px;
+      top: 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #fe2c55;
+      background: none;
+      border: none;
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #fe2c55;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 12px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #e60039;
+    }
+    #message {
+      margin-top: 12px;
+      min-height: 22px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .links {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .links a {
+      color: #fe2c55;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Join Amora 💖</h2>
+
+    <input type="text" id="displayName" placeholder="Full Name" oninput="suggestUsername()" />
+    <input type="text" id="username" placeholder="Username (auto-suggested)" />
+    <input type="email" id="email" placeholder="Email Address" />
+    <input type="tel" id="phone" placeholder="Phone (optional)" />
+
+    <div class="input-wrapper">
+      <input type="password" id="password" placeholder="Password" />
+      <button class="toggle-password" onclick="togglePassword('password', this)"></button>
+    </div>
+
+    <div class="input-wrapper">
+      <input type="password" id="confirmPassword" placeholder="Confirm Password" />
+      <button class="toggle-password" onclick="togglePassword('confirmPassword', this)"></button>
+    </div>
+
+    <button onclick="signup()">Create Account</button>
+    <p id="message"></p>
+
+    <div class="links">
+      Already have an account? <a href="login.html">Login here</a>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id);
+      if (input.type === "password") {
+        input.type = "text";
+        btn.innerText = "Hide";
+      } else {
+        input.type = "password";
+        btn.innerText = "Show";
+      }
+    }
+
+    function suggestUsername() {
+      const name = document.getElementById("displayName").value.trim().toLowerCase().replace(/\s+/g, "");
+      const random = Math.floor(Math.random() * 10000);
+      document.getElementById("username").value = name + random;
+    }
+
+    async function signup() {
+      const name = document.getElementById('displayName').value.trim();
+      const username = document.getElementById('username').value.trim().toLowerCase();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const msg = document.getElementById('message');
+
+      msg.style.color = 'red';
+      msg.innerText = '';
+
+      if (!name || !username || !email || !password || !confirmPassword) {
+        msg.innerText = "Please fill out all fields.";
+        return;
+      }
+
+      if (password.length < 6) {
+        msg.innerText = "Password must be at least 6 characters.";
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        msg.innerText = "Passwords do not match.";
+        return;
+      }
+
+      msg.innerText = "Creating account...";
+      msg.style.color = "#444";
+
+      try {
+        const result = await auth.createUserWithEmailAndPassword(email, password);
+        const user = result.user;
+
+        await user.updateProfile({ displayName: name });
+        await user.sendEmailVerification();
+
+        const userRef = db.ref("users/" + user.uid);
+
+        await userRef.set({
+          uid: user.uid,
+          username,
+          name,
+          email,
+          phone,
+          photoURL: "",
+          createdAt: Date.now()
+        });
+
+        msg.style.color = "green";
+        msg.innerText = "Verification email sent. Please check your inbox...";
+
+        const checkInterval = setInterval(async () => {
+          await user.reload();
+          if (user.emailVerified) {
+            clearInterval(checkInterval);
+            msg.innerText = "Email verified! Redirecting...";
+            setTimeout(() => {
+              window.location.href = "chat.html";
+            }, 1000);
+          }
+        }, 2000);
+      } catch (err) {
+        console.error("Signup error:", err);
+        msg.innerText = err.message.includes("EMAIL_EXISTS")
+          ? "This email is already registered."
+          : err.message;
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>

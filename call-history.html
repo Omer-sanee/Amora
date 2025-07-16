@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="manifest" href="manifest.json" />
+  <title>Call History | Amora</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #d63384;
+      margin-bottom: 20px;
+    }
+    .log {
+      background: white;
+      margin-bottom: 12px;
+      padding: 14px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .log span {
+      font-size: 15px;
+      color: #333;
+    }
+    button {
+      background: #d63384;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #backBtn {
+      margin-top: 20px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📞 Call History</h1>
+  <div id="history"></div>
+  <button id="backBtn" onclick="location.href='chat.html'">← Back to Chat</button>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loadCallHistory(user.uid);
+      } else {
+        location.href = 'login.html';
+      }
+    });
+
+    function loadCallHistory(uid) {
+      const historyDiv = document.getElementById('history');
+      db.ref(`call_logs/${uid}`).on('value', snap => {
+        historyDiv.innerHTML = '';
+        if (!snap.exists()) {
+          historyDiv.innerHTML = '<p>No call history found.</p>';
+          return;
+        }
+        snap.forEach(log => {
+          const { with: partner, type, time } = log.val();
+          const dateStr = new Date(time).toLocaleString();
+          const entry = document.createElement('div');
+          entry.className = 'log';
+
+          const info = document.createElement('span');
+          info.textContent = `${type.toUpperCase()} call with ${partner} on ${dateStr}`;
+
+          const callBtn = document.createElement('button');
+          callBtn.textContent = '▶ Call Again';
+          callBtn.onclick = () => {
+            localStorage.setItem('lastCalled', partner);
+            location.href = 'chat.html';
+          };
+
+          entry.appendChild(info);
+          entry.appendChild(callBtn);
+          historyDiv.appendChild(entry);
+        });
+      });
+    }
+      // Register PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>

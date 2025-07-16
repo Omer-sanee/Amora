@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Amora Group Call</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#d63384" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg, #f0f2f5);
+      color: var(--text, #000);
+      margin: 0;
+      padding: 0;
+      transition: 0.3s background, 0.3s color;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #d63384;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #d63384;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+    .leave-btn {
+      background: #888;
+    }
+    .toggle-theme {
+      background: #222;
+      color: #fff;
+      width: auto;
+      margin: 10px auto;
+      display: block;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+    }
+    #participants {
+      margin-top: 20px;
+      font-size: 15px;
+    }
+    iframe {
+      margin-top: 20px;
+      width: 100%;
+      height: 500px;
+      border: none;
+      display: none;
+    }
+    small {
+      display: block;
+      margin-top: 10px;
+      text-align: center;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Group Call 💬</h2>
+
+  <input type="text" id="groupName" placeholder="Enter group name (e.g. friends)" />
+
+  <!-- FRIENDS ONLY ACCESS -->
+  <select id="allowedList">
+    <option value="public">🌐 Public – Anyone with group name can join</option>
+    <option value="friends">👥 Friends Only – Only added users allowed</option>
+  </select>
+
+  <button onclick="joinGroupCall()">Join Call</button>
+  <button class="leave-btn" onclick="leaveGroupCall()">Leave Call</button>
+  <button class="toggle-theme" onclick="toggleDark()">🌓 Toggle Dark Mode</button>
+
+  <small>Share the same group name with friends to join the same room.</small>
+  <div id="participants"></div>
+  <iframe id="callFrame"></iframe>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+    authDomain: "myloveapp-1e4a9.firebaseapp.com",
+    databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+    projectId: "myloveapp-1e4a9",
+    storageBucket: "myloveapp-1e4a9.appspot.com",
+    messagingSenderId: "661630991428",
+    appId: "1:661630991428:web:98aa8110cf4b571e749011"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  let currentUser = null;
+  let currentRoom = null;
+  let participantRef = null;
+
+  auth.onAuthStateChanged(user => {
+    if (user) currentUser = user;
+    else location.href = 'login.html';
+  });
+
+  function notifyJoin(name) {
+    if (Notification.permission === "granted") {
+      new Notification(`${name} joined the call`, { icon: "icon.png" });
+        Notification.requestPermission();
+new Notification("User joined!", { body: "Someone entered the call." });
+    } else {
+      Notification.requestPermission();
+    }
+  }
+
+  function joinGroupCall() {
+    const name = document.getElementById("groupName").value.trim().toLowerCase();
+    const mode = document.getElementById("allowedList").value;
+    if (!name) return alert("Enter a group name.");
+    currentRoom = "amora-group-" + encodeURIComponent(name);
+    const iframe = document.getElementById("callFrame");
+    iframe.src = `https://meet.jit.si/${currentRoom}`;
+    iframe.style.display = "block";
+
+    const uid = currentUser.uid;
+    const userInfo = {
+      name: currentUser.displayName || "User",
+      uid,
+      joinedAt: Date.now()
+    };
+    participantRef = db.ref(`group_calls/${currentRoom}/participants/${uid}`);
+    participantRef.set(userInfo);
+
+    if (mode === "friends") {
+      db.ref(`friends/${uid}`).once("value").then(snap => {
+        const friends = snap.val() || {};
+        const allowed = Object.keys(friends);
+        db.ref(`group_calls/${currentRoom}/access`).set({ allowed });
+      });
+    }
+
+
+    showParticipants();
+    setInterval(cleanOldParticipants, 10 * 60 * 1000);
+  }
+// Add a friend (from user to friend)
+function addFriend(friendUid) {
+  const currentUserUid = firebase.auth().currentUser.uid;
+  firebase.database().ref(`friends/${currentUserUid}/${friendUid}`).set(true);
+}
+
+  function leaveGroupCall() {
+    if (participantRef) {
+      participantRef.remove();
+      alert("You left the call.");
+      location.reload();
+    }
+  }
+
+  function showParticipants() {
+    const div = document.getElementById("participants");
+    const roomPath = `group_calls/${currentRoom}/participants`;
+
+    db.ref(roomPath).on("value", snap => {
+      const list = snap.val() || {};
+      const count = Object.keys(list).length;
+      div.innerHTML = `<strong>Participants (${count}):</strong><ul>`;
+      for (const id in list) {
+        const user = list[id];
+        const time = new Date(user.joinedAt).toLocaleTimeString();
+        div.innerHTML += `<li>${user.name} (joined at ${time})</li>`;
+        if (id !== currentUser.uid) notifyJoin(user.name);
+      }
+      div.innerHTML += "</ul>";
+    });
+  }
+
+  function cleanOldParticipants() {
+    const now = Date.now();
+    const ref = db.ref(`group_calls/${currentRoom}/participants`);
+    ref.once("value", snap => {
+      snap.forEach(child => {
+        if (now - child.val().joinedAt > 24 * 60 * 60 * 1000) {
+          child.ref.remove();
+        }
+      });
+    });
+  }
+
+  function toggleDark() {
+    const isDark = document.body.style.getPropertyValue('--bg') === "#111";
+    document.body.style.setProperty('--bg', isDark ? "#f0f2f5" : "#111");
+    document.body.style.setProperty('--text', isDark ? "#000" : "#fff");
+  }
+
+
+
+  // Register PWA SW
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+
+</body>
+</html>

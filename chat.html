@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Amora Chat</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      background: #f0f2f5;
+      display: flex;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 30%;
+      max-width: 300px;
+      background: #fff;
+      border-right: 1px solid #ccc;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 16px;
+      background: #d63384;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      background: #f7f7f7;
+      padding: 10px 0;
+      border-bottom: 1px solid #ccc;
+    }
+    .tab {
+      font-weight: bold;
+      cursor: pointer;
+      color: #555;
+    }
+    .tab.active {
+      color: #d63384;
+      border-bottom: 2px solid #d63384;
+    }
+    .search-bar {
+      padding: 10px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+    }
+    .chat-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .chat-item {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    .chat-item:hover {
+      background: #f1f1f1;
+    }
+    .chat-avatar {
+      width: 45px;
+      height: 45px;
+      background: #ccc;
+      border-radius: 50%;
+      margin-right: 12px;
+      overflow: hidden;
+    }
+    .chat-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .chat-info {
+      flex: 1;
+    }
+    .chat-info h4 {
+      margin-bottom: 4px;
+    }
+    .chat-info small {
+      color: gray;
+    }
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-header {
+      background: #fff;
+      padding: 16px;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .message {
+      max-width: 60%;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 20px;
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+    .sent { background: #dcf8c6; align-self: flex-end; }
+    .received { background: #fff; border: 1px solid #ddd; align-self: flex-start; }
+    .typing {
+      font-style: italic;
+      color: gray;
+      margin-bottom: 10px;
+    }
+    .chat-input {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      position: relative;
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      margin: 0 8px;
+    }
+    .chat-input button {
+      background: #d63384;
+      border: none;
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+    .emoji-picker {
+      position: absolute;
+      bottom: 60px;
+      left: 10px;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 10px;
+      display: none;
+      border-radius: 12px;
+      z-index: 99;
+    }
+    .emoji-picker span {
+      font-size: 20px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .actions-bar button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 5px;
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .chat-area { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h2>Amora 💖</h2>
+      <div>
+        <button onclick="location.href='menu.html'">⚙</button>
+        <button onclick="inviteUser()">➕</button>
+      </div>  
+    </div>
+    <div class="tabs">
+      <div class="tab active">Chats</div>
+      <div class="tab" onclick="location.href='call-history.html'">Calls</div>
+       <div class="tab" onclick="location.href='group-call.html'">Group Call</div>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by username..." oninput="searchContacts()" />
+    </div>
+    <div class="chat-list" id="chatList"></div>
+  </div>
+
+  <div class="chat-area">
+    <div class="chat-header">
+      <strong id="chatName">Start a chat</strong>
+      <div class="actions-bar">
+        <button onclick="startCall()">📞</button>
+        <button onclick="startVideoCall()">🎥</button>
+        <button onclick="blockUser()">🚫</button>
+        <button onclick="reportUser()">⚠</button>
+        <button onclick="location.href='userinfo.html'">ℹ️</button>
+      </div>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input">
+      <button onclick="toggleEmoji()">😊</button>
+      <div class="emoji-picker" id="emojiPicker">
+        <span onclick="addEmoji('😊')">😊</span>
+        <span onclick="addEmoji('😍')">😍</span>
+        <span onclick="addEmoji('😂')">😂</span>
+        <span onclick="addEmoji('❤')">❤</span>
+        <span onclick="addEmoji('👍')">👍</span>
+         <span onclick="addEmoji('😊')">😊</span>
+        <span onclick="addEmoji('😃')">😃</span>
+        <span onclick="addEmoji('😄')">😄</span>
+        <span onclick="addEmoji('😁')">😁</span>
+        <span onclick="addEmoji('😆')">😆</span>
+         <span onclick="addEmoji('🥰')">🥰</span>
+        <span onclick="addEmoji('😉')">😉</span>
+        <span onclick="addEmoji('🤎')">🤎</span>
+        <span onclick="addEmoji('💔')">💔</span>
+        <span onclick="addEmoji('❤️‍🔥')">❤️‍🔥</span>
+        <span onclick="addEmoji('💕')">💕</span>
+        <span onclick="addEmoji('💙')">💙</span>
+        <span onclick="addEmoji('🖤')">💘</span>
+        <span onclick="addEmoji('💘')">💘</span>
+      </div>
+      <input type="text" id="messageInput" placeholder="Type a message..." oninput="updateTyping()" />
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+    let selectedUser = null;
+    let selectedUserUsername = null;
+    let allUsers = [];
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        setUserOnlineStatus(true);
+        loadContacts();
+        window.addEventListener('beforeunload', () => setUserOnlineStatus(false));
+        requestNotificationPermission();
+      } else {
+        window.location.href = 'login.html';
+      }
+    });
+
+    function setUserOnlineStatus(status) {
+      if (currentUser) {
+        db.ref('status/' + currentUser.uid).set({ online: status, lastSeen: Date.now() });
+      }
+    }
+
+    function requestNotificationPermission() {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+    }
+
+    function notifyUserOffline(username, message) {
+      if (Notification.permission === "granted") {
+        new Notification(`Message to ${username}`, {
+          body: message,
+          icon: "icon.png"
+        });
+      }
+    }
+
+    function inviteUser() {
+      const link = `${location.origin}/index.html?ref=${currentUser.uid}`;
+      if (navigator.share) {
+        navigator.share({ title: "Join Amora 💖", text: "Let’s chat!", url: link });
+      } else {
+        prompt("Copy and share this link:", link);
+      }
+    }
+
+    function loadContacts() {
+      const list = document.getElementById("chatList");
+      list.innerHTML = "";
+      allUsers = [];
+
+      db.ref("users").once("value").then(snapshot => {
+        snapshot.forEach(child => {
+          const user = child.val();
+          if (user.uid !== currentUser.uid) {
+            allUsers.push(user);
+            renderUser(user);
+          }
+        });
+      });
+    }
+
+    function renderUser(user) {
+      const list = document.getElementById("chatList");
+      const div = document.createElement("div");
+      div.className = "chat-item";
+      div.innerHTML = `
+        <div class="chat-avatar">${user.photoURL ? `<img src="${user.photoURL}">` : ""}</div>
+        <div class="chat-info">
+          <h4>${user.name || user.username}</h4>
+          <small>@${user.username}</small>
+        </div>
+      `;
+      div.onclick = () => startChat(user.uid, user.name || user.username, user.username);
+      list.appendChild(div);
+    }
+
+    function startChat(uid, name, username) {
+  if (uid === currentUser.uid) {
+    alert("You can't chat with yourself.");
+    return;
+  }
+
+  selectedUser = uid;
+  selectedUserUsername = username;
+  document.getElementById("chatName").innerText = name;
+  listenMessages();
+}
+
+
+    function chatPath() {
+      return `chats/${currentUser.uid}_${selectedUser}`;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("messageInput");
+      const msg = input.value.trim();
+      if (!msg || !selectedUser) return;
+      const data = { from: currentUser.uid, message: msg, timestamp: Date.now() };
+      await db.ref(chatPath()).push(data);
+      await db.ref(`chats/${selectedUser}_${currentUser.uid}`).push(data);
+      input.value = "";
+
+      const status = await db.ref("status/" + selectedUser).once("value");
+      if (!status.exists() || !status.val().online) {
+        notifyUserOffline(selectedUserUsername, msg);
+      }
+    }
+
+    function listenMessages() {
+      const box = document.getElementById("chatMessages");
+      db.ref(chatPath()).on("value", snap => {
+        box.innerHTML = "";
+        snap.forEach(msg => {
+          const { from, message, timestamp } = msg.val();
+          const time = new Date(timestamp).toLocaleTimeString();
+          const div = document.createElement("div");
+          div.className = "message " + (from === currentUser.uid ? "sent" : "received");
+          div.innerHTML = `<span>${message}</span><br><small>${time}</small>`;
+          box.appendChild(div);
+        });
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+
+    function toggleEmoji() {
+      const picker = document.getElementById("emojiPicker");
+      picker.style.display = picker.style.display === "block" ? "none" : "block";
+    }
+
+    function addEmoji(e) {
+      document.getElementById("messageInput").value += e;
+    }
+
+    function updateTyping() {
+      if (!selectedUser) return;
+      const path = `typing/${currentUser.uid}_${selectedUser}`;
+      db.ref(path).set({ typing: true });
+      setTimeout(() => db.ref(path).remove(), 1500);
+    }
+
+    setInterval(() => {
+      if (!selectedUser || !currentUser) return;
+      const path = `typing/${selectedUser}_${currentUser.uid}`;
+      db.ref(path).once("value", snap => {
+        if (snap.exists()) {
+          const typing = document.createElement("div");
+          typing.className = "typing";
+          typing.innerText = "Typing...";
+          const box = document.getElementById("chatMessages");
+          box.appendChild(typing);
+          setTimeout(() => typing.remove(), 1000);
+        }
+      });
+    }, 1000);
+
+    function startCall() {
+      if (!selectedUser) return alert("Select someone to call.");
+      const room = `amora-call-${currentUser.uid}-${selectedUser}`;
+      const url = `https://meet.jit.si/${room}#config.startWithVideoMuted=true`;
+      window.open(url, '_blank');
+      logCall(selectedUser, "voice");
+    }
+
+    function startVideoCall() {
+      if (!selectedUser) return alert("Select someone to video call.");
+      const room = `amora-call-${currentUser.uid}-${selectedUser}`;
+      const url = `https://meet.jit.si/${room}`;
+      window.open(url, '_blank');
+      logCall(selectedUser, "video");
+    }
+
+    function logCall(uid, type = "voice") {
+      const log = { with: uid, type, time: Date.now() };
+      db.ref(`call_logs/${currentUser.uid}`).push(log);
+      db.ref(`call_logs/${uid}`).push({ ...log, with: currentUser.uid });
+    }
+
+    function blockUser() {
+      if (!selectedUser) return alert("No user selected.");
+      db.ref(`blocked/${currentUser.uid}/${selectedUser}`).set(true);
+      alert("User blocked.");
+    }
+
+    function reportUser() {
+      if (!selectedUser) return alert("No user selected.");
+      db.ref(`reports/${currentUser.uid}`).push({ against: selectedUser, time: Date.now() });
+      alert("User reported.");
+    }
+
+    function searchContacts() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const list = document.getElementById("chatList");
+      list.innerHTML = "";
+      const filtered = allUsers.filter(user =>
+        user.username.toLowerCase().includes(query) ||
+        (user.name && user.name.toLowerCase().includes(query))
+      );
+      if (filtered.length === 0) {
+        const noResult = document.createElement("div");
+        noResult.style.textAlign = "center";
+        noResult.style.color = "gray";
+        noResult.style.padding = "20px";
+        noResult.textContent = "😢 No user found...";
+        list.appendChild(noResult);
+      } else {
+        filtered.forEach(renderUser);
+      }
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+    
+  </script>
+</body>
+</html>

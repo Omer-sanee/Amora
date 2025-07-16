@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Amora</title>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#d63384" />
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      text-align: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      padding: 30px 20px;
+    }
+
+    .logo {
+      font-family: 'Great Vibes', cursive;
+      color: #d63384;
+      font-size: 40px;
+      margin-bottom: 40px;
+    }
+
+    .login-option {
+      background: #f8f8f8;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 18px;
+      font-weight: 600;
+      color: #333;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      font-size: 16px;
+    }
+
+    .login-option:hover {
+      background: #f0f0f0;
+    }
+
+    .disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .footer a {
+      color: #d63384;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    #installBtn {
+      display: none;
+      margin-top: 25px;
+      background: #d63384;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 400px) {
+      .logo {
+        font-size: 30px;
+      }
+
+      .login-option {
+        font-size: 15px;
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Amora</div>
+
+    <!-- Only this one works -->
+    <div class="login-option" onclick="window.location.href='signup.html'">
+      📱 Use phone or email
+    </div>
+
+    <!-- Disabled social buttons -->
+    <div class="login-option disabled">🔵 Continue with Facebook</div>
+    <div class="login-option disabled">🟥 Continue with Google</div>
+    <div class="login-option disabled">🟣 Continue with Twitter</div>
+
+    <div class="footer">
+      Already have an account? <a href="login-form.html">Log in</a>
+    </div>
+
+    <!-- Install PWA Button -->
+    <button id="installBtn">📲 Install Amora</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('Service Worker Registered', reg))
+        .catch(err => console.log('Service Worker Failed', err));
+    }
+
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-block';
+
+      installBtn.onclick = () => {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        });
+      };
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login | Amora</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <meta name="theme-color" content="#fe2c55" />
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fef2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+    }
+    h2 {
+      color: #fe2c55;
+      margin-bottom: 20px;
+      font-size: 26px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    .input-wrapper {
+      position: relative;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 20px;
+      top: 14px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #fe2c55;
+      background: none;
+      border: none;
+      font-weight: bold;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #fe2c55;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 12px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #e60039;
+    }
+    #message {
+      margin-top: 12px;
+      min-height: 22px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .links {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .links a {
+      color: #fe2c55;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome Back 💕</h2>
+
+    <input type="email" id="email" placeholder="Email Address" />
+    <div class="input-wrapper">
+      <input type="password" id="password" placeholder="Password" />
+      <button class="toggle-password" onclick="togglePassword()">Show</button>
+    </div>
+
+    <button onclick="login()">Log In</button>
+    <p id="message"></p>
+
+    <div class="links">
+      Forgot password? <a href="#" onclick="forgotPassword()">Reset</a><br />
+      Don’t have an account? <a href="signup.html">Sign up here</a>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function togglePassword() {
+      const input = document.getElementById('password');
+      const btn = document.querySelector('.toggle-password');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    function login() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('message');
+      msg.innerText = "";
+      msg.style.color = "red";
+
+      if (!email || !password) {
+        msg.innerText = "Please enter email and password.";
+        return;
+      }
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          if (!user.emailVerified) {
+            msg.innerText = "Email not verified. Check your inbox.";
+            return;
+          }
+          msg.innerText = "Logging in...";
+          msg.style.color = "green";
+          setTimeout(() => {
+            window.location.href = "chat.html";
+          }, 1000);
+        })
+        .catch((error) => {
+          const code = error.code;
+          if (code === 'auth/user-not-found') {
+            msg.innerText = "No user found with this email.";
+          } else if (code === 'auth/wrong-password') {
+            msg.innerText = "Incorrect password.";
+          } else {
+            msg.innerText = error.message;
+          }
+        });
+    }
+
+    function forgotPassword() {
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        alert("Enter your email to receive reset link.");
+        return;
+      }
+
+      auth.sendPasswordResetEmail(email)
+        .then(() => {
+          alert("Password reset link sent to your email.");
+        })
+        .catch((error) => {
+          alert(error.message);
+        });
+    }
+
+    // Register PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>

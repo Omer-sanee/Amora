@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json" />
+  <title>My Settings | Amora</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fef2f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .box {
+      background: #fff;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+    }
+    h2 {
+      color: #fe2c55;
+      margin-bottom: 20px;
+      font-size: 26px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    textarea {
+      resize: none;
+      height: 60px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .save { background: #28a745; color: white; }
+    .change { background: #007bff; color: white; }
+    .logout { background: #dc3545; color: white; }
+    .back { background: #6c757d; color: white; }
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    img.profile {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin-bottom: 10px;
+      border: 2px solid #fe2c55;
+    }
+    .readonly {
+      background: #eee;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>My Settings 💫</h2>
+
+    <img id="profilePic" src="icon.png" alt="Profile" class="profile" />
+    <input type="text" id="displayName" placeholder="Your Name" />
+    <input type="text" id="username" placeholder="Username" />
+    <input type="email" id="email" class="readonly" placeholder="Email" readonly />
+    <input type="text" id="photoURL" placeholder="Profile Picture URL" oninput="updatePreview()" />
+    <textarea id="bio" placeholder="Bio (e.g. Loving life 💖)"></textarea>
+    <button class="save" onclick="saveProfile()">💾 Save Profile</button>
+
+    <input type="password" id="newPassword" placeholder="New Password" />
+    <input type="password" id="confirmPassword" placeholder="Confirm New Password" />
+    <button class="change" onclick="changePassword()">🔐 Change Password</button>
+
+    <button class="logout" onclick="logout()">🚪 Logout</button>
+    <button class="logout" onclick="deleteAccount()">🗑️ Delete Account</button>
+
+    <button class="back" onclick="location.href='chat.html'">← Back to Chat</button>
+
+    <div id="status"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const nameInput = document.getElementById("displayName");
+    const usernameInput = document.getElementById("username");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("newPassword");
+    const confirmInput = document.getElementById("confirmPassword");
+    const photoInput = document.getElementById("photoURL");
+    const bioInput = document.getElementById("bio");
+    const statusDiv = document.getElementById("status");
+    const profilePic = document.getElementById("profilePic");
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return location.href = "login.html";
+
+      nameInput.value = user.displayName || "";
+      photoInput.value = user.photoURL || "";
+      emailInput.value = user.email || "";
+      profilePic.src = user.photoURL || "icon.png";
+
+      db.ref("users/" + user.uid).once("value").then(snap => {
+        const data = snap.val();
+        if (data) {
+          usernameInput.value = data.username || "";
+          bioInput.value = data.bio || "";
+        }
+      });
+    });
+
+    function updatePreview() {
+      const url = photoInput.value.trim();
+      profilePic.src = url || "icon.png";
+    }
+
+    function saveProfile() {
+      const user = auth.currentUser;
+      const newName = nameInput.value.trim();
+      const newPhoto = photoInput.value.trim();
+      const newBio = bioInput.value.trim();
+      const newUsername = usernameInput.value.trim().toLowerCase();
+
+      if (!newName || !newUsername) return showStatus("Name and username are required", "red");
+
+      user.updateProfile({ displayName: newName, photoURL: newPhoto || null })
+        .then(() => {
+          return db.ref("users/" + user.uid).update({
+            name: newName,
+            username: newUsername,
+            photoURL: newPhoto || "",
+            bio: newBio
+          });
+        })
+        .then(() => showStatus("✅ Profile updated!", "green"))
+        .catch(err => showStatus("❌ " + err.message, "red"));
+    }
+
+    function changePassword() {
+      const newPassword = passwordInput.value.trim();
+      const confirm = confirmInput.value.trim();
+
+      if (newPassword.length < 6) return showStatus("Password too short", "red");
+      if (newPassword !== confirm) return showStatus("Passwords don't match", "red");
+
+      auth.currentUser.updatePassword(newPassword)
+        .then(() => showStatus("🔐 Password changed!", "green"))
+        .catch(err => showStatus("❌ " + err.message, "red"));
+    }
+
+    function logout() {
+      auth.signOut().then(() => location.href = "login.html");
+    }
+
+    function showStatus(msg, color) {
+      statusDiv.innerText = msg;
+      statusDiv.style.color = color;
+    }
+    function deleteAccount() {
+  if (!confirm("⚠️ Are you sure you want to delete your account? This cannot be undone.")) return;
+
+  const user = auth.currentUser;
+
+  if (!user) return showStatus("User not logged in", "red");
+
+  // Remove user data from database first
+  db.ref("users/" + user.uid).remove()
+    .then(() => {
+      return user.delete(); // Delete Firebase Auth account
+    })
+    .then(() => {
+      showStatus("✅ Account deleted", "green");
+      setTimeout(() => {
+        location.href = "signup.html";
+      }, 1500);
+    })
+    .catch(err => {
+      if (err.code === 'auth/requires-recent-login') {
+        showStatus("⚠️ Please log in again to delete account", "red");
+      } else {
+        showStatus("❌ " + err.message, "red");
+      }
+    });
+}
+
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
