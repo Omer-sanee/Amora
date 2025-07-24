@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#d63384" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="screen-orientation" content="portrait" />
   <title>Login - Amora</title>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
-  <meta name="theme-color" content="#d63384" />
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png" />
   <style>
@@ -103,12 +106,10 @@
   <div class="container">
     <div class="logo">Amora</div>
 
-    <!-- Only this one works -->
     <div class="login-option" onclick="window.location.href='signup.html'">
       📱 Use phone or email
     </div>
 
-    <!-- Disabled social buttons -->
     <div class="login-option disabled">🔵 Continue with Facebook</div>
     <div class="login-option disabled">🟥 Continue with Google</div>
     <div class="login-option disabled">🟣 Continue with Twitter</div>
@@ -117,15 +118,54 @@
       Already have an account? <a href="login-form.html">Log in</a>
     </div>
 
-    <!-- Install PWA Button -->
     <button id="installBtn">📲 Install Amora</button>
   </div>
 
+  <!-- Firebase + Auth logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+   const firebaseConfig = {
+      apiKey: "AIzaSyDVsJjnjwGGGUUxj7Zx-Sn0fwH-bIRr7Ok",
+      authDomain: "myloveapp-1e4a9.firebaseapp.com",
+      databaseURL: "https://myloveapp-1e4a9-default-rtdb.firebaseio.com",
+      projectId: "myloveapp-1e4a9",
+      storageBucket: "myloveapp-1e4a9.appspot.com",
+      messagingSenderId: "661630991428",
+      appId: "1:661630991428:web:98aa8110cf4b571e749011"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Persist session
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        console.log("Firebase persistence set.");
+      })
+      .catch((error) => {
+        console.error("Persistence error:", error);
+      });
+
+    // Auto-redirect if logged in
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.location.href = "chat.html";
+      }
+    });
+  </script>
+
+  <!-- PWA service worker & install prompt -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log('Service Worker Registered', reg))
-        .catch(err => console.log('Service Worker Failed', err));
+        .then(reg => console.log('✅ Service Worker registered'))
+        .catch(err => console.log('❌ Service Worker failed', err));
     }
 
     let deferredPrompt;
@@ -140,9 +180,9 @@
         deferredPrompt.prompt();
         deferredPrompt.userChoice.then((choiceResult) => {
           if (choiceResult.outcome === 'accepted') {
-            console.log('User accepted the install prompt');
+            console.log('✅ PWA install accepted');
           } else {
-            console.log('User dismissed the install prompt');
+            console.log('❌ PWA install dismissed');
           }
           deferredPrompt = null;
           installBtn.style.display = 'none';

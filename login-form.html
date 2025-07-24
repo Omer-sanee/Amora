@@ -8,28 +8,32 @@
   <link rel="apple-touch-icon" href="icon.png" />
   <meta name="theme-color" content="#fe2c55" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #fef2f5;
+      margin: 0;
+      padding: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
     }
     .container {
       background: #fff;
-      padding: 30px;
+      padding: 30px 24px;
       border-radius: 18px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
       max-width: 420px;
       width: 100%;
-      text-align: center;
     }
     h2 {
+      text-align: center;
       color: #fe2c55;
-      margin-bottom: 20px;
       font-size: 26px;
+      margin-bottom: 20px;
     }
     input {
       width: 100%;
@@ -44,14 +48,14 @@
     }
     .toggle-password {
       position: absolute;
-      right: 20px;
-      top: 14px;
+      top: 50%;
+      right: 16px;
+      transform: translateY(-50%);
       cursor: pointer;
-      font-size: 14px;
-      color: #fe2c55;
       background: none;
       border: none;
       font-weight: bold;
+      color: #fe2c55;
     }
     button {
       width: 100%;
@@ -61,21 +65,24 @@
       border: none;
       font-size: 16px;
       border-radius: 12px;
-      margin-top: 10px;
+      margin-top: 12px;
       cursor: pointer;
+      transition: 0.2s ease;
     }
     button:hover {
       background: #e60039;
     }
     #message {
-      margin-top: 12px;
-      min-height: 22px;
+      margin-top: 10px;
+      min-height: 20px;
       font-size: 14px;
       font-weight: 500;
+      text-align: center;
     }
     .links {
       margin-top: 20px;
       font-size: 14px;
+      text-align: center;
     }
     .links a {
       color: #fe2c55;
@@ -85,6 +92,13 @@
     .links a:hover {
       text-decoration: underline;
     }
+
+    @media (max-width: 480px) {
+      .container {
+        margin: 0 16px;
+        padding: 24px 16px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -92,6 +106,7 @@
     <h2>Welcome Back 💕</h2>
 
     <input type="email" id="email" placeholder="Email Address" />
+
     <div class="input-wrapper">
       <input type="password" id="password" placeholder="Password" />
       <button class="toggle-password" onclick="togglePassword()">Show</button>
@@ -124,6 +139,13 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
 
+    // Auto-login if user is already signed in and email verified
+    auth.onAuthStateChanged(user => {
+      if (user && user.emailVerified) {
+        window.location.href = "chat.html";
+      }
+    });
+
     function togglePassword() {
       const input = document.getElementById('password');
       const btn = document.querySelector('.toggle-password');
@@ -152,14 +174,14 @@
         .then((userCredential) => {
           const user = userCredential.user;
           if (!user.emailVerified) {
-            msg.innerText = "Email not verified. Check your inbox.";
+            msg.innerText = "Email not verified. Please check your inbox.";
             return;
           }
           msg.innerText = "Logging in...";
           msg.style.color = "green";
           setTimeout(() => {
             window.location.href = "chat.html";
-          }, 1000);
+          }, 800);
         })
         .catch((error) => {
           const code = error.code;
@@ -189,7 +211,7 @@
         });
     }
 
-    // Register PWA
+    // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
     }

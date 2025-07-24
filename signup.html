@@ -8,27 +8,31 @@
   <link rel="apple-touch-icon" href="icon.png" />
   <meta name="theme-color" content="#fe2c55" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: #fef2f5;
+      margin: 0;
+      padding: 20px;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      min-height: 100vh;
     }
     .container {
       background: #fff;
       padding: 30px;
       border-radius: 18px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      max-width: 420px;
       width: 100%;
-      text-align: center;
+      max-width: 420px;
     }
     h2 {
       color: #fe2c55;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
+      text-align: center;
       font-size: 26px;
     }
     input {
@@ -38,6 +42,7 @@
       border: 1px solid #ddd;
       border-radius: 10px;
       font-size: 16px;
+      transition: border-color 0.3s;
     }
     input:focus {
       border-color: #fe2c55;
@@ -48,13 +53,14 @@
     }
     .toggle-password {
       position: absolute;
-      right: 20px;
-      top: 14px;
-      cursor: pointer;
-      font-size: 14px;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
       color: #fe2c55;
       background: none;
       border: none;
+      cursor: pointer;
       font-weight: bold;
     }
     button {
@@ -65,7 +71,7 @@
       border: none;
       font-size: 16px;
       border-radius: 12px;
-      margin-top: 10px;
+      margin-top: 12px;
       cursor: pointer;
     }
     button:hover {
@@ -76,10 +82,12 @@
       min-height: 22px;
       font-size: 14px;
       font-weight: 500;
+      text-align: center;
     }
     .links {
       margin-top: 20px;
       font-size: 14px;
+      text-align: center;
     }
     .links a {
       color: #fe2c55;
@@ -88,6 +96,24 @@
     }
     .links a:hover {
       text-decoration: underline;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+        border-radius: 14px;
+      }
+      h2 {
+        font-size: 22px;
+      }
+      input {
+        font-size: 15px;
+        padding: 11px;
+      }
+      button {
+        padding: 12px;
+        font-size: 15px;
+      }
     }
   </style>
 </head>
@@ -98,16 +124,16 @@
     <input type="text" id="displayName" placeholder="Full Name" oninput="suggestUsername()" />
     <input type="text" id="username" placeholder="Username (auto-suggested)" />
     <input type="email" id="email" placeholder="Email Address" />
-    <input type="tel" id="phone" placeholder="Phone (optional)" />
+    <input type="tel" id="phone" placeholder="Phone Number (required)" />
 
     <div class="input-wrapper">
       <input type="password" id="password" placeholder="Password" />
-      <button class="toggle-password" onclick="togglePassword('password', this)"></button>
+      <button type="button" class="toggle-password" onclick="togglePassword('password', this)">Show</button>
     </div>
 
     <div class="input-wrapper">
       <input type="password" id="confirmPassword" placeholder="Confirm Password" />
-      <button class="toggle-password" onclick="togglePassword('confirmPassword', this)"></button>
+      <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword', this)">Show</button>
     </div>
 
     <button onclick="signup()">Create Account</button>
@@ -139,13 +165,8 @@
 
     function togglePassword(id, btn) {
       const input = document.getElementById(id);
-      if (input.type === "password") {
-        input.type = "text";
-        btn.innerText = "Hide";
-      } else {
-        input.type = "password";
-        btn.innerText = "Show";
-      }
+      input.type = input.type === "password" ? "text" : "password";
+      btn.innerText = input.type === "password" ? "Show" : "Hide";
     }
 
     function suggestUsername() {
@@ -166,7 +187,7 @@
       msg.style.color = 'red';
       msg.innerText = '';
 
-      if (!name || !username || !email || !password || !confirmPassword) {
+      if (!name || !username || !email || !phone || !password || !confirmPassword) {
         msg.innerText = "Please fill out all fields.";
         return;
       }
